@@ -429,20 +429,20 @@ export function TreemapTab() {
       {/* ── 우측 트리맵 콘텐츠 영역 ── */}
       <section className="flex-1 flex flex-col p-6 space-y-6 overflow-y-auto custom-scrollbar">
         {/* 기간 선택 패널 (WidgetWrapper 스타일 적용) */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row gap-4 items-center justify-between shrink-0 w-full">
-          <div className="flex items-center gap-2">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row gap-6 items-center justify-start shrink-0 w-full">
+          <div className="flex items-center gap-2 shrink-0">
             <Calendar className="w-5 h-5 text-indigo-600" />
-            <h4 className="font-bold text-slate-800 text-sm">비교 구간 기간 설정 (구간 2 선택 시 좌우 분할)</h4>
+            <h4 className="font-bold text-slate-800 text-sm">비교 구간 기간 설정</h4>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-6">
-            {/* 구간 1 기간 */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">구간 1</span>
+          <div className="flex flex-col sm:flex-row gap-4 items-center w-full md:w-auto">
+            {/* 구간 1 기간 카드 */}
+            <div className="flex items-center gap-2 border border-indigo-100 bg-indigo-50/30 rounded-lg px-3 py-1.5 shadow-sm">
+              <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded">구간 1</span>
               <select
                 value={period1.start}
                 onChange={(e) => setPeriod1(prev => ({ ...prev, start: e.target.value, end: e.target.value < prev.end ? prev.end : e.target.value }))}
-                className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="bg-white border border-slate-200 rounded-md px-2.5 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm font-medium"
               >
                 {availableMonths.map(ym => <option key={ym} value={ym}>{ym}</option>)}
               </select>
@@ -450,15 +450,15 @@ export function TreemapTab() {
               <select
                 value={period1.end}
                 onChange={(e) => setPeriod1(prev => ({ ...prev, end: e.target.value, start: e.target.value > prev.start ? prev.start : e.target.value }))}
-                className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="bg-white border border-slate-200 rounded-md px-2.5 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm font-medium"
               >
                 {availableMonths.map(ym => <option key={ym} value={ym}>{ym}</option>)}
               </select>
             </div>
 
-            {/* 구간 2 기간 (옵션 A: '선택 안 함' 지원) */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">구간 2</span>
+            {/* 구간 2 기간 카드 */}
+            <div className="flex items-center gap-2 border border-emerald-100 bg-emerald-50/30 rounded-lg px-3 py-1.5 shadow-sm">
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">구간 2</span>
               <select
                 value={period2.start}
                 onChange={(e) => {
@@ -472,7 +472,7 @@ export function TreemapTab() {
                     return { start: newStart, end: newEnd };
                   });
                 }}
-                className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="bg-white border border-slate-200 rounded-md px-2.5 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm font-medium"
               >
                 <option value="">[선택 안 함]</option>
                 {availableMonths.map(ym => <option key={ym} value={ym}>{ym}</option>)}
@@ -491,7 +491,7 @@ export function TreemapTab() {
                     return { start: newStart, end: newEnd };
                   });
                 }}
-                className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="bg-white border border-slate-200 rounded-md px-2.5 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm font-medium"
               >
                 <option value="">[선택 안 함]</option>
                 {availableMonths.map(ym => <option key={ym} value={ym}>{ym}</option>)}
@@ -503,16 +503,29 @@ export function TreemapTab() {
         {/* 트리맵 배치 그리드 (flex-row를 사용하여 항상 가로 50:50 좌우 1:1 배치 강제, 쏠림 해결) */}
         <div className="flex flex-row gap-6 flex-1 min-h-[480px] w-full">
           {/* 구간 1 트리맵 (isPeriod2Active 상태에 따라 flex-1 w-1/2 min-w-0 또는 w-full flex-grow 동적 확장) */}
-          <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full relative ${
+          <div className={`bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-full relative overflow-hidden ${
             isPeriod2Active ? 'flex-grow flex-1 w-1/2 min-w-0' : 'w-full flex-grow flex-1 min-w-0'
           }`}>
-            <div className="flex justify-between items-center mb-3">
-              <h5 className="font-bold text-slate-800 text-sm">구간 1 매출 비중 ({period1.start} ~ {period1.end})</h5>
-              <span className="text-xs font-mono text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded">
-                총 ₩{Math.round(treemap1.totalRevenue).toLocaleString()}
-              </span>
+            {/* 고도화된 카드 헤더 */}
+            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0">
+                  구간 1
+                </span>
+                <h5 className="font-bold text-slate-800 text-sm truncate">
+                  매출 비중 <span className="font-normal text-slate-500 text-xs ml-1.5 font-mono">({period1.start} ~ {period1.end})</span>
+                </h5>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                <span className="text-[10px] text-slate-400 font-medium">총 매출액</span>
+                <span className="text-sm font-extrabold text-indigo-600 font-mono bg-indigo-50/40 px-2.5 py-1 rounded-md border border-indigo-100/50">
+                  ₩{Math.round(treemap1.totalRevenue).toLocaleString()}
+                </span>
+              </div>
             </div>
-            <div className="flex-1 min-h-[400px]">
+
+            {/* 카드 바디 */}
+            <div className="flex-1 p-5 min-h-[400px]">
               {treemap1.data.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <Treemap
@@ -588,14 +601,27 @@ export function TreemapTab() {
 
           {/* 구간 2 트리맵 (활성화되었을 때만 렌더링, flex-grow w-1/2 min-w-0 적용으로 좌우 대칭 화면 확장) */}
           {isPeriod2Active && (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full relative flex-grow flex-1 w-1/2 min-w-0">
-              <div className="flex justify-between items-center mb-3">
-                <h5 className="font-bold text-slate-800 text-sm">구간 2 매출 비중 ({period2StartToShow} ~ {period2EndToShow})</h5>
-                <span className="text-xs font-mono text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded">
-                  총 ₩{Math.round(treemap2.totalRevenue).toLocaleString()}
-                </span>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-full relative overflow-hidden flex-grow flex-1 w-1/2 min-w-0">
+              {/* 고도화된 카드 헤더 */}
+              <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0">
+                    구간 2
+                  </span>
+                  <h5 className="font-bold text-slate-800 text-sm truncate">
+                    매출 비중 <span className="font-normal text-slate-500 text-xs ml-1.5 font-mono">({period2StartToShow} ~ {period2EndToShow})</span>
+                  </h5>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                  <span className="text-[10px] text-slate-400 font-medium">총 매출액</span>
+                  <span className="text-sm font-extrabold text-emerald-600 font-mono bg-emerald-50/40 px-2.5 py-1 rounded-md border border-emerald-100/50">
+                    ₩{Math.round(treemap2.totalRevenue).toLocaleString()}
+                  </span>
+                </div>
               </div>
-              <div className="flex-1 min-h-[400px]">
+
+              {/* 카드 바디 */}
+              <div className="flex-1 p-5 min-h-[400px]">
                 {treemap2.data.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <Treemap
