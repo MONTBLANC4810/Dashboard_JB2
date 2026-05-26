@@ -18,21 +18,21 @@ interface SalesRecord {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// ★ 트리맵용 은은한 파스텔 뮤트 톤 색상 목록
+// ★ Finviz S&P 500 스타일 트리맵 색상 (깊고 진한 톤 → 흰색 텍스트 가독성 극대화)
 // ──────────────────────────────────────────────────────────────────
 const TREEMAP_COLORS = [
-  '#5c6bc0', // soft indigo
-  '#64b5f6', // soft blue
-  '#4db6ac', // soft teal
-  '#81c784', // soft green
-  '#ba68c8', // soft purple
-  '#4dd0e1', // soft cyan
-  '#a1887f', // soft brown
-  '#90a4ae', // soft blue-grey
-  '#9ccc65', // soft light-green
-  '#b39ddb', // soft lavender
-  '#9fa8da', // soft steel-blue
-  '#b0bec5'  // soft cool-grey
+  '#2a5f4f', // deep teal-green
+  '#1e4d78', // deep navy
+  '#5b3a7a', // deep purple
+  '#2e6e5e', // forest teal
+  '#7a3b3b', // deep burgundy
+  '#3a5f8a', // steel blue
+  '#4a6741', // olive green
+  '#8b5535', // deep amber-brown
+  '#6b4a6b', // deep mauve
+  '#2e6b7a', // dark cyan
+  '#5a5040', // dark khaki
+  '#3a4a6b'  // dark slate-blue
 ];
 
 // ──────────────────────────────────────────────────────────────────
