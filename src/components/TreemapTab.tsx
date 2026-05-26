@@ -18,21 +18,21 @@ interface SalesRecord {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// ★ Finviz S&P 500 스타일 트리맵 색상 (깊고 진한 톤 → 흰색 텍스트 가독성 극대화)
+// ★ 대시보드 테마와 조화로운 트리맵 색상 (선명하고 모던한 톤 + 흰색 텍스트 가독성 확보)
 // ──────────────────────────────────────────────────────────────────
 const TREEMAP_COLORS = [
-  '#2a5f4f', // deep teal-green
-  '#1e4d78', // deep navy
-  '#5b3a7a', // deep purple
-  '#2e6e5e', // forest teal
-  '#7a3b3b', // deep burgundy
-  '#3a5f8a', // steel blue
-  '#4a6741', // olive green
-  '#8b5535', // deep amber-brown
-  '#6b4a6b', // deep mauve
-  '#2e6b7a', // dark cyan
-  '#5a5040', // dark khaki
-  '#3a4a6b'  // dark slate-blue
+  '#6366f1', // indigo-500  (대시보드 메인 액센트)
+  '#3b82f6', // blue-500
+  '#0ea5e9', // sky-500
+  '#14b8a6', // teal-500
+  '#8b5cf6', // violet-500
+  '#06b6d4', // cyan-500
+  '#10b981', // emerald-500
+  '#ec4899', // pink-500
+  '#f59e0b', // amber-500
+  '#f97316', // orange-500
+  '#a78bfa', // violet-400
+  '#64748b'  // slate-500
 ];
 
 // ──────────────────────────────────────────────────────────────────
