@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useDashboard } from '../context/DashboardContext';
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
 import { Filter, Search, Calendar, CheckSquare, Square, X } from 'lucide-react';
-import { CHART_COLORS } from '../utils/format';
 
 interface SalesRecord {
   year: number;
@@ -19,10 +18,28 @@ interface SalesRecord {
 }
 
 // ──────────────────────────────────────────────────────────────────
+// ★ 트리맵용 은은한 파스텔 뮤트 톤 색상 목록
+// ──────────────────────────────────────────────────────────────────
+const TREEMAP_COLORS = [
+  '#5c6bc0', // soft indigo
+  '#64b5f6', // soft blue
+  '#4db6ac', // soft teal
+  '#81c784', // soft green
+  '#ba68c8', // soft purple
+  '#4dd0e1', // soft cyan
+  '#a1887f', // soft brown
+  '#90a4ae', // soft blue-grey
+  '#9ccc65', // soft light-green
+  '#b39ddb', // soft lavender
+  '#9fa8da', // soft steel-blue
+  '#b0bec5'  // soft cool-grey
+];
+
+// ──────────────────────────────────────────────────────────────────
 // ★ Finviz 스타일 트리맵 커스텀 노드 렌더러
 //   - 박스 면적에 맞게 폰트 크기 및 텍스트 행 수 동적 제어
-//   - 상위 30% 이내 주요 항목은 좀 더 밝은 계열 색상 강조
-//   - 글씨 가독성 향상을 위해 Bold 해제 (normal 굵기 적용)
+//   - 은은한 파스텔 톤 색상 적용
+//   - 그림자 및 가독성 향상 폰트 적용
 //   - 노드 클릭 기능 탑재
 // ──────────────────────────────────────────────────────────────────
 function CustomTreemapNode(props: any) {
@@ -35,9 +52,9 @@ function CustomTreemapNode(props: any) {
   const safeAmt = amt ?? 0;
   const safePercent = percent ?? 0;
 
-  // 색상 지정: index를 기반으로 CHART_COLORS 순환 사용하되, 비중 강도에 따라 투명도 차별화
-  const baseColor = CHART_COLORS[safeIndex % CHART_COLORS.length];
-  const fillOpacity = width > 120 && height > 80 ? 0.9 : 0.75;
+  // 은은한 파스텔 톤 색상 지정
+  const baseColor = TREEMAP_COLORS[safeIndex % TREEMAP_COLORS.length];
+  const fillOpacity = width > 120 && height > 80 ? 0.95 : 0.85;
 
   // 폰트 크기 동적 결정
   const nameFontSize = width > 100 ? 11 : 9;
@@ -57,15 +74,17 @@ function CustomTreemapNode(props: any) {
         strokeWidth={1.5}
         style={{ cursor: 'pointer', transition: 'all 0.2s' }}
       />
-      {/* 텍스트 노출 (높이/너비 제약 조건 충족 시에만 상세정보 표출, Bold 해제) */}
+      {/* 텍스트 노출 (텍스트 그림자 및 500/600 굵기 적용하여 가독성 강화) */}
       {width > 50 && height > 25 && (
         <text
           x={x + width / 2}
           y={y + height / 2 - (height > 45 ? 6 : 0)}
           fill="#ffffff"
           fontSize={nameFontSize}
+          fontWeight={500}
           textAnchor="middle"
           dominantBaseline="middle"
+          style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)', fontFamily: 'sans-serif' }}
         >
           {name.length > Math.floor(width / 10) ? name.slice(0, Math.floor(width / 10) - 1) + '..' : name}
         </text>
@@ -79,20 +98,24 @@ function CustomTreemapNode(props: any) {
             y={y + height / 2 + 8}
             fill="rgba(255,255,255,0.95)"
             fontSize={valFontSize}
+            fontWeight={600}
             fontFamily="monospace"
             textAnchor="middle"
             dominantBaseline="middle"
+            style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)' }}
           >
             ₩{Math.round(safeAmt).toLocaleString()}
           </text>
-          {/* 비중 % 표시 (Bold 해제) */}
+          {/* 비중 % 표시 */}
           <text
             x={x + width / 2}
             y={y + height / 2 + 20}
-            fill="rgba(255,255,255,0.8)"
+            fill="rgba(255,255,255,0.85)"
             fontSize={valFontSize - 1}
+            fontWeight={500}
             textAnchor="middle"
             dominantBaseline="middle"
+            style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)', fontFamily: 'sans-serif' }}
           >
             {safePercent.toFixed(1)}%
           </text>
@@ -105,15 +128,94 @@ function CustomTreemapNode(props: any) {
 export function TreemapTab() {
   const { salesData } = useDashboard();
   
-  // 1. 가용 기간 추출
-  const availableMonths = useMemo(() => {
-    const months = salesData.map(r => `${r.year}-${String(r.month).padStart(2, '0')}`);
-    return Array.from(new Set(months)).sort();
+
+  // 가용 연도 목록 추출
+  const availableYears = useMemo(() => {
+    const years = salesData.map(r => String(r.year));
+    return Array.from(new Set(years)).sort();
   }, [salesData]);
+
+  const monthsList = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
 
   // 2. 필터 및 기간 선택 상태 정의 (구간 2는 디폴트 '선택 안 함' 상태로 두어 1구간 전체 화면이 먼저 보이도록 함)
   const [period1, setPeriod1] = useState({ start: '2021-01', end: '2026-02' });
   const [period2, setPeriod2] = useState({ start: '', end: '' });
+
+  // 구간 1 기간 변경 핸들러
+  const handlePeriod1StartYearChange = (year: string) => {
+    const month = period1.start.split('-')[1] || '01';
+    const newYm = `${year}-${month}`;
+    setPeriod1(prev => ({ ...prev, start: newYm, end: prev.end < newYm ? newYm : prev.end }));
+  };
+  const handlePeriod1StartMonthChange = (month: string) => {
+    const year = period1.start.split('-')[0] || '2021';
+    const newYm = `${year}-${month}`;
+    setPeriod1(prev => ({ ...prev, start: newYm, end: prev.end < newYm ? newYm : prev.end }));
+  };
+  const handlePeriod1EndYearChange = (year: string) => {
+    const month = period1.end.split('-')[1] || '12';
+    const newYm = `${year}-${month}`;
+    setPeriod1(prev => ({ ...prev, end: newYm, start: prev.start > newYm ? newYm : prev.start }));
+  };
+  const handlePeriod1EndMonthChange = (month: string) => {
+    const year = period1.end.split('-')[0] || '2026';
+    const newYm = `${year}-${month}`;
+    setPeriod1(prev => ({ ...prev, end: newYm, start: prev.start > newYm ? newYm : prev.start }));
+  };
+
+  // 구간 2 기간 변경 핸들러 (선택 안 함 가능)
+  const handlePeriod2StartYearChange = (year: string) => {
+    if (!year) {
+      setPeriod2({ start: '', end: '' });
+      return;
+    }
+    const month = period2.start.split('-')[1] || '01';
+    const newYm = `${year}-${month}`;
+    setPeriod2(prev => {
+      let newEnd = prev.end;
+      if (!prev.end || prev.end < newYm) {
+        newEnd = newYm;
+      }
+      return { start: newYm, end: newEnd };
+    });
+  };
+  const handlePeriod2StartMonthChange = (month: string) => {
+    const year = period2.start.split('-')[0] || availableYears[0] || '2021';
+    const newYm = `${year}-${month}`;
+    setPeriod2(prev => {
+      let newEnd = prev.end;
+      if (!prev.end || prev.end < newYm) {
+        newEnd = newYm;
+      }
+      return { start: newYm, end: newEnd };
+    });
+  };
+  const handlePeriod2EndYearChange = (year: string) => {
+    if (!year) {
+      setPeriod2({ start: '', end: '' });
+      return;
+    }
+    const month = period2.end.split('-')[1] || '12';
+    const newYm = `${year}-${month}`;
+    setPeriod2(prev => {
+      let newStart = prev.start;
+      if (!prev.start || prev.start > newYm) {
+        newStart = newYm;
+      }
+      return { start: newStart, end: newYm };
+    });
+  };
+  const handlePeriod2EndMonthChange = (month: string) => {
+    const year = period2.end.split('-')[0] || availableYears[availableYears.length - 1] || '2026';
+    const newYm = `${year}-${month}`;
+    setPeriod2(prev => {
+      let newStart = prev.start;
+      if (!prev.start || prev.start > newYm) {
+        newStart = newYm;
+      }
+      return { start: newStart, end: newYm };
+    });
+  };
   
   // 사이드바 필터 고유 값 추출
   const uniqueValues = useMemo(() => {
@@ -437,64 +539,85 @@ export function TreemapTab() {
 
           <div className="flex flex-col sm:flex-row gap-4 items-center w-full md:w-auto">
             {/* 구간 1 기간 선택 */}
-            <div className="flex items-center gap-2 bg-slate-100/80 hover:bg-slate-100 p-1.5 px-3 rounded-lg text-xs transition-colors">
-              <span className="font-bold text-indigo-600 mr-1">구간 1</span>
+            <div className="flex items-center gap-1.5 bg-slate-100/80 hover:bg-slate-100 p-1.5 px-3 rounded-lg text-xs transition-colors shrink-0">
+              <span className="font-bold text-indigo-600 mr-1.5 shrink-0">구간 1</span>
+              {/* 시작 연도 */}
               <select
-                value={period1.start}
-                onChange={(e) => setPeriod1(prev => ({ ...prev, start: e.target.value, end: e.target.value < prev.end ? prev.end : e.target.value }))}
-                className="bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0.5 text-xs"
+                value={period1.start.split('-')[0]}
+                onChange={(e) => handlePeriod1StartYearChange(e.target.value)}
+                className="bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0.5 pr-5 text-xs"
               >
-                {availableMonths.map(ym => <option key={ym} value={ym}>{ym}</option>)}
+                {availableYears.map(y => <option key={y} value={y}>{y}년</option>)}
               </select>
-              <span className="text-slate-400 font-medium">~</span>
+              {/* 시작 월 */}
               <select
-                value={period1.end}
-                onChange={(e) => setPeriod1(prev => ({ ...prev, end: e.target.value, start: e.target.value > prev.start ? prev.start : e.target.value }))}
-                className="bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0.5 text-xs"
+                value={period1.start.split('-')[1]}
+                onChange={(e) => handlePeriod1StartMonthChange(e.target.value)}
+                className="bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0.5 pr-5 text-xs"
               >
-                {availableMonths.map(ym => <option key={ym} value={ym}>{ym}</option>)}
+                {monthsList.map(m => <option key={m} value={m}>{parseInt(m)}월</option>)}
+              </select>
+              <span className="text-slate-400 font-medium px-0.5">~</span>
+              {/* 종료 연도 */}
+              <select
+                value={period1.end.split('-')[0]}
+                onChange={(e) => handlePeriod1EndYearChange(e.target.value)}
+                className="bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0.5 pr-5 text-xs"
+              >
+                {availableYears.map(y => <option key={y} value={y}>{y}년</option>)}
+              </select>
+              {/* 종료 월 */}
+              <select
+                value={period1.end.split('-')[1]}
+                onChange={(e) => handlePeriod1EndMonthChange(e.target.value)}
+                className="bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0.5 pr-5 text-xs"
+              >
+                {monthsList.map(m => <option key={m} value={m}>{parseInt(m)}월</option>)}
               </select>
             </div>
 
             {/* 구간 2 기간 선택 */}
-            <div className="flex items-center gap-2 bg-slate-100/80 hover:bg-slate-100 p-1.5 px-3 rounded-lg text-xs transition-colors">
-              <span className="font-bold text-emerald-600 mr-1">구간 2</span>
+            <div className="flex items-center gap-1.5 bg-slate-100/80 hover:bg-slate-100 p-1.5 px-3 rounded-lg text-xs transition-colors shrink-0">
+              <span className="font-bold text-emerald-600 mr-1.5 shrink-0">구간 2</span>
+              {/* 시작 연도 */}
               <select
-                value={period2.start}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setPeriod2(prev => {
-                    const newStart = val;
-                    let newEnd = prev.end;
-                    if (val && (!prev.end || val > prev.end)) {
-                      newEnd = val;
-                    }
-                    return { start: newStart, end: newEnd };
-                  });
-                }}
-                className="bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0.5 text-xs"
+                value={period2.start ? period2.start.split('-')[0] : ''}
+                onChange={(e) => handlePeriod2StartYearChange(e.target.value)}
+                className="bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0.5 pr-5 text-xs"
               >
                 <option value="">[선택 안 함]</option>
-                {availableMonths.map(ym => <option key={ym} value={ym}>{ym}</option>)}
+                {availableYears.map(y => <option key={y} value={y}>{y}년</option>)}
               </select>
-              <span className="text-slate-400 font-medium">~</span>
+              {/* 시작 월 */}
               <select
-                value={period2.end}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setPeriod2(prev => {
-                    const newEnd = val;
-                    let newStart = prev.start;
-                    if (val && (!prev.start || val < prev.start)) {
-                      newStart = val;
-                    }
-                    return { start: newStart, end: newEnd };
-                  });
-                }}
-                className="bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0.5 text-xs"
+                value={period2.start ? period2.start.split('-')[1] : ''}
+                disabled={!period2.start}
+                onChange={(e) => handlePeriod2StartMonthChange(e.target.value)}
+                className="bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0.5 pr-5 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <option value="">-</option>
+                {monthsList.map(m => <option key={m} value={m}>{parseInt(m)}월</option>)}
+              </select>
+              <span className="text-slate-400 font-medium px-0.5">~</span>
+              {/* 종료 연도 */}
+              <select
+                value={period2.end ? period2.end.split('-')[0] : ''}
+                disabled={!period2.start}
+                onChange={(e) => handlePeriod2EndYearChange(e.target.value)}
+                className="bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0.5 pr-5 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <option value="">[선택 안 함]</option>
-                {availableMonths.map(ym => <option key={ym} value={ym}>{ym}</option>)}
+                {availableYears.map(y => <option key={y} value={y}>{y}년</option>)}
+              </select>
+              {/* 종료 월 */}
+              <select
+                value={period2.end ? period2.end.split('-')[1] : ''}
+                disabled={!period2.start}
+                onChange={(e) => handlePeriod2EndMonthChange(e.target.value)}
+                className="bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0.5 pr-5 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <option value="">-</option>
+                {monthsList.map(m => <option key={m} value={m}>{parseInt(m)}월</option>)}
               </select>
             </div>
           </div>
@@ -506,18 +629,18 @@ export function TreemapTab() {
           <div className={`bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-full relative overflow-hidden ${
             isPeriod2Active ? 'flex-grow flex-1 w-1/2 min-w-0' : 'w-full flex-grow flex-1 min-w-0'
           }`}>
-            {/* 개선된 카드 헤더 */}
-            <div className="px-5 pt-5 pb-3 shrink-0">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            {/* 개선된 카드 헤더: 여백을 넓히고(p-6 pb-4) w-full justify-between으로 정렬 */}
+            <div className="p-6 pb-4 shrink-0">
+              <div className="flex items-center justify-between gap-4 w-full">
                 <div className="flex items-center gap-2">
                   <h5 className="font-bold text-slate-800 text-sm">
                     구간 1 매출 비중
                   </h5>
                   <span className="font-normal text-slate-500 text-xs font-mono">({period1.start} ~ {period1.end})</span>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto text-xs">
+                <div className="flex items-center gap-2 text-xs shrink-0">
                   <span className="text-slate-400 font-medium">총 매출액</span>
-                  <span className="font-bold text-indigo-600 font-mono">
+                  <span className="font-extrabold text-indigo-600 font-mono text-sm">
                     ₩{Math.round(treemap1.totalRevenue).toLocaleString()}
                   </span>
                 </div>
@@ -604,18 +727,18 @@ export function TreemapTab() {
           {/* 구간 2 트리맵 (활성화되었을 때만 렌더링, flex-grow w-1/2 min-w-0 적용으로 좌우 대칭 화면 확장) */}
           {isPeriod2Active && (
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-full relative overflow-hidden flex-grow flex-1 w-1/2 min-w-0">
-              {/* 개선된 카드 헤더 */}
-              <div className="px-5 pt-5 pb-3 shrink-0">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              {/* 개선된 카드 헤더: 여백을 넓히고(p-6 pb-4) w-full justify-between으로 정렬 */}
+              <div className="p-6 pb-4 shrink-0">
+                <div className="flex items-center justify-between gap-4 w-full">
                   <div className="flex items-center gap-2">
                     <h5 className="font-bold text-slate-800 text-sm">
                       구간 2 매출 비중
                     </h5>
                     <span className="font-normal text-slate-500 text-xs font-mono">({period2StartToShow} ~ {period2EndToShow})</span>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto text-xs">
+                  <div className="flex items-center gap-2 text-xs shrink-0">
                     <span className="text-slate-400 font-medium">총 매출액</span>
-                    <span className="font-bold text-emerald-600 font-mono">
+                    <span className="font-extrabold text-emerald-600 font-mono text-sm">
                       ₩{Math.round(treemap2.totalRevenue).toLocaleString()}
                     </span>
                   </div>
