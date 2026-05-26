@@ -22,6 +22,7 @@ interface SalesRecord {
 // ★ Finviz 스타일 트리맵 커스텀 노드 렌더러
 //   - 박스 면적에 맞게 폰트 크기 및 텍스트 행 수 동적 제어
 //   - 상위 30% 이내 주요 항목은 좀 더 밝은 계열 색상 강조
+//   - 글씨 가독성 향상을 위해 Bold 해제 (normal 굵기 적용)
 //   - 노드 클릭 기능 탑재
 // ──────────────────────────────────────────────────────────────────
 function CustomTreemapNode(props: any) {
@@ -56,14 +57,13 @@ function CustomTreemapNode(props: any) {
         strokeWidth={1.5}
         style={{ cursor: 'pointer', transition: 'all 0.2s' }}
       />
-      {/* 텍스트 노출 (높이/너비 제약 조건 충족 시에만 상세정보 표출) */}
+      {/* 텍스트 노출 (높이/너비 제약 조건 충족 시에만 상세정보 표출, Bold 해제) */}
       {width > 50 && height > 25 && (
         <text
           x={x + width / 2}
           y={y + height / 2 - (height > 45 ? 6 : 0)}
           fill="#ffffff"
           fontSize={nameFontSize}
-          fontWeight={700}
           textAnchor="middle"
           dominantBaseline="middle"
         >
@@ -85,13 +85,12 @@ function CustomTreemapNode(props: any) {
           >
             ₩{Math.round(safeAmt).toLocaleString()}
           </text>
-          {/* 비중 % 표시 */}
+          {/* 비중 % 표시 (Bold 해제) */}
           <text
             x={x + width / 2}
             y={y + height / 2 + 20}
             fill="rgba(255,255,255,0.8)"
             fontSize={valFontSize - 1}
-            fontWeight={600}
             textAnchor="middle"
             dominantBaseline="middle"
           >
@@ -307,7 +306,7 @@ export function TreemapTab() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-62px)] bg-slate-50 font-sans overflow-hidden">
+    <div className="flex h-full bg-slate-50 font-sans overflow-hidden">
       {/* ── 좌측 필터 사이드바 (FilterSidebar.tsx 디자인 100% 동기화 및 마우스 스크롤 교정) ── */}
       <aside className="w-72 bg-white border-r border-slate-200 flex flex-col shadow-sm shrink-0 h-full overflow-hidden">
         <div className="p-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
@@ -490,10 +489,10 @@ export function TreemapTab() {
           </div>
         </div>
 
-        {/* 트리맵 배치 그리드 (sm:grid-cols-2를 통해 모바일 세로 뷰를 제외한 모든 태블릿 및 PC 화면에서 항시 좌우 배치) */}
-        <div className={`grid gap-6 flex-1 min-h-[480px] ${isPeriod2Active ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+        {/* 트리맵 배치 그리드 (flex-row를 사용하여 항상 가로 50:50 좌우 1:1 배치 강제) */}
+        <div className="flex flex-row gap-6 flex-1 min-h-[480px]">
           {/* 구간 1 트리맵 */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full relative">
+          <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full relative ${isPeriod2Active ? 'w-1/2' : 'w-full'}`}>
             <div className="flex justify-between items-center mb-3">
               <h5 className="font-bold text-slate-800 text-sm">구간 1 매출 비중 ({period1.start} ~ {period1.end})</h5>
               <span className="text-xs font-mono text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded">
@@ -507,6 +506,7 @@ export function TreemapTab() {
                     data={treemap1.data}
                     dataKey="size"
                     stroke="#ffffff"
+                    isAnimationActive={false} // 유입 애니메이션 제거
                     content={<CustomTreemapNode onNodeClick={(name: string) => setSelectedCustomer1(name)} />}
                   >
                     <Tooltip
@@ -534,7 +534,7 @@ export function TreemapTab() {
 
             {/* 구간 1 실적 상세 오버레이 팝업 */}
             {selectedCustomer1 && (
-              <div className="absolute inset-0 bg-white shadow-2xl z-20 rounded-xl overflow-hidden flex flex-col p-4 animate-fade-in">
+              <div className="absolute inset-0 bg-white shadow-2xl z-20 rounded-xl overflow-hidden flex flex-col p-4">
                 <div className="flex justify-between items-center pb-3 border-b border-slate-200">
                   <div>
                     <h4 className="font-bold text-sm text-slate-800">{selectedCustomer1} 실적 상세 (구간 1)</h4>
@@ -575,7 +575,7 @@ export function TreemapTab() {
 
           {/* 구간 2 트리맵 (활성화되었을 때만 렌더링) */}
           {isPeriod2Active && (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full relative">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full relative w-1/2">
               <div className="flex justify-between items-center mb-3">
                 <h5 className="font-bold text-slate-800 text-sm">구간 2 매출 비중 ({period2.start} ~ {period2.end})</h5>
                 <span className="text-xs font-mono text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded">
@@ -589,6 +589,7 @@ export function TreemapTab() {
                       data={treemap2.data}
                       dataKey="size"
                       stroke="#ffffff"
+                      isAnimationActive={false} // 유입 애니메이션 제거
                       content={<CustomTreemapNode onNodeClick={(name: string) => setSelectedCustomer2(name)} />}
                     >
                       <Tooltip
@@ -616,7 +617,7 @@ export function TreemapTab() {
 
               {/* 구간 2 실적 상세 오버레이 팝업 */}
               {selectedCustomer2 && (
-                <div className="absolute inset-0 bg-white shadow-2xl z-20 rounded-xl overflow-hidden flex flex-col p-4 animate-fade-in">
+                <div className="absolute inset-0 bg-white shadow-2xl z-20 rounded-xl overflow-hidden flex flex-col p-4">
                   <div className="flex justify-between items-center pb-3 border-b border-slate-200">
                     <div>
                       <h4 className="font-bold text-sm text-slate-800">{selectedCustomer2} 실적 상세 (구간 2)</h4>
