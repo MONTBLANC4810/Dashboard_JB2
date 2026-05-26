@@ -81,7 +81,7 @@ function CustomTreemapNode(props: any) {
           y={y + height / 2 - (height > 45 ? 6 : 0)}
           fill="#ffffff"
           fontSize={nameFontSize}
-          fontWeight={500}
+          fontWeight={400}
           textAnchor="middle"
           dominantBaseline="middle"
           style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)', fontFamily: 'sans-serif' }}
@@ -98,8 +98,8 @@ function CustomTreemapNode(props: any) {
             y={y + height / 2 + 8}
             fill="rgba(255,255,255,0.95)"
             fontSize={valFontSize}
-            fontWeight={600}
-            fontFamily="monospace"
+            fontWeight={400}
+            fontFamily="sans-serif"
             textAnchor="middle"
             dominantBaseline="middle"
             style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)' }}
@@ -112,7 +112,7 @@ function CustomTreemapNode(props: any) {
             y={y + height / 2 + 20}
             fill="rgba(255,255,255,0.85)"
             fontSize={valFontSize - 1}
-            fontWeight={500}
+            fontWeight={400}
             textAnchor="middle"
             dominantBaseline="middle"
             style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)', fontFamily: 'sans-serif' }}
@@ -630,7 +630,7 @@ export function TreemapTab() {
             isPeriod2Active ? 'flex-grow flex-1 w-1/2 min-w-0' : 'w-full flex-grow flex-1 min-w-0'
           }`}>
             {/* 개선된 카드 헤더: 여백을 넓히고(p-6 pb-4) w-full justify-between으로 정렬 */}
-            <div className="pt-8 px-8 pb-5 shrink-0">
+            <div className="pt-4 px-6 pb-2 shrink-0">
               <div className="flex items-center justify-between gap-4 w-full">
                 <div className="flex items-center gap-2">
                   <h5 className="font-bold text-slate-800 text-sm">
@@ -650,7 +650,7 @@ export function TreemapTab() {
             <div className="border-b border-slate-200/80 w-full shrink-0" />
 
             {/* 카드 바디 */}
-            <div className="flex-1 px-8 pb-8 pt-2 min-h-[400px]">
+            <div className="flex-1 px-6 pb-4 pt-1 min-h-[400px]">
               {treemap1.data.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <Treemap
@@ -728,7 +728,7 @@ export function TreemapTab() {
           {isPeriod2Active && (
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-full relative overflow-hidden flex-grow flex-1 w-1/2 min-w-0">
               {/* 개선된 카드 헤더: 여백을 넓히고(p-6 pb-4) w-full justify-between으로 정렬 */}
-              <div className="pt-8 px-8 pb-5 shrink-0">
+              <div className="pt-4 px-6 pb-2 shrink-0">
                 <div className="flex items-center justify-between gap-4 w-full">
                   <div className="flex items-center gap-2">
                     <h5 className="font-bold text-slate-800 text-sm">
@@ -748,7 +748,7 @@ export function TreemapTab() {
               <div className="border-b border-slate-200/80 w-full shrink-0" />
 
               {/* 카드 바디 */}
-              <div className="flex-1 px-8 pb-8 pt-2 min-h-[400px]">
+              <div className="flex-1 px-6 pb-4 pt-1 min-h-[400px]">
                 {treemap2.data.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <Treemap
