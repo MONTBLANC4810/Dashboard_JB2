@@ -20,6 +20,14 @@ export function CompareTab() {
     return Array.from(new Set(months)).sort();
   }, [salesData]);
 
+  // 가용 연도 목록 추출 및 정렬
+  const availableYears = useMemo(() => {
+    const years = salesData.map(r => String(r.year));
+    return Array.from(new Set(years)).sort();
+  }, [salesData]);
+
+  const monthsList = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+
   // 기본 구간 2개로 초기화
   const [periods, setPeriods] = useState<Period[]>(() => {
     const defaultStart = '2021-01';
@@ -178,35 +186,57 @@ export function CompareTab() {
                 />
               </div>
 
-              {/* 기간 선택 (연월) */}
+              {/* 기간 선택 (연/월 개별 선택 방식) */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs text-slate-500 mb-1">시작 연월</label>
-                  <select
-                    value={p.start}
-                    onChange={(e) => handleUpdatePeriod(p.id, 'start', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs text-slate-800 focus:outline-none"
-                  >
-                    {availableMonths.map((ym) => (
-                      <option key={ym} value={ym}>
-                        {ym}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex gap-1">
+                    <select
+                      value={p.start.split('-')[0]}
+                      onChange={(e) => {
+                        const month = p.start.split('-')[1] || '01';
+                        handleUpdatePeriod(p.id, 'start', `${e.target.value}-${month}`);
+                      }}
+                      className="w-full px-1.5 py-1 bg-white border border-slate-200 rounded text-xs text-slate-800 focus:outline-none cursor-pointer shadow-sm"
+                    >
+                      {availableYears.map(y => <option key={y} value={y}>{y}년</option>)}
+                    </select>
+                    <select
+                      value={p.start.split('-')[1]}
+                      onChange={(e) => {
+                        const year = p.start.split('-')[0] || '2021';
+                        handleUpdatePeriod(p.id, 'start', `${year}-${e.target.value}`);
+                      }}
+                      className="w-full px-1.5 py-1 bg-white border border-slate-200 rounded text-xs text-slate-800 focus:outline-none cursor-pointer shadow-sm"
+                    >
+                      {monthsList.map(m => <option key={m} value={m}>{parseInt(m)}월</option>)}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs text-slate-500 mb-1">종료 연월</label>
-                  <select
-                    value={p.end}
-                    onChange={(e) => handleUpdatePeriod(p.id, 'end', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs text-slate-800 focus:outline-none"
-                  >
-                    {availableMonths.map((ym) => (
-                      <option key={ym} value={ym}>
-                        {ym}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex gap-1">
+                    <select
+                      value={p.end.split('-')[0]}
+                      onChange={(e) => {
+                        const month = p.end.split('-')[1] || '12';
+                        handleUpdatePeriod(p.id, 'end', `${e.target.value}-${month}`);
+                      }}
+                      className="w-full px-1.5 py-1 bg-white border border-slate-200 rounded text-xs text-slate-800 focus:outline-none cursor-pointer shadow-sm"
+                    >
+                      {availableYears.map(y => <option key={y} value={y}>{y}년</option>)}
+                    </select>
+                    <select
+                      value={p.end.split('-')[1]}
+                      onChange={(e) => {
+                        const year = p.end.split('-')[0] || '2026';
+                        handleUpdatePeriod(p.id, 'end', `${year}-${e.target.value}`);
+                      }}
+                      className="w-full px-1.5 py-1 bg-white border border-slate-200 rounded text-xs text-slate-800 focus:outline-none cursor-pointer shadow-sm"
+                    >
+                      {monthsList.map(m => <option key={m} value={m}>{parseInt(m)}월</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
