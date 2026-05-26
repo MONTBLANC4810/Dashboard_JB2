@@ -6,7 +6,8 @@ import { CumulativeGauge, AnnualGauge } from './KpiGauges';
 import { YearlyCompareChart } from './YearlyCompareChart';
 import { CustomerTrendChart } from './CustomerTrendChart';
 import { CompareTab } from './CompareTab';
-import { LayoutDashboard, Calendar } from 'lucide-react';
+import { TreemapTab } from './TreemapTab';
+import { LayoutDashboard, Calendar, LayoutGrid } from 'lucide-react';
 
 const WidgetWrapper = ({ children }: { children: React.ReactNode }) => (
   <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col relative group overflow-hidden h-full">
@@ -18,7 +19,7 @@ const WidgetWrapper = ({ children }: { children: React.ReactNode }) => (
 
 export const Dashboard: React.FC = () => {
   const { isInitialLoad, salesData } = useDashboard();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'compare'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'compare' | 'compare_treemap'>('dashboard');
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
@@ -63,6 +64,17 @@ export const Dashboard: React.FC = () => {
                   <Calendar size={14} />
                   자유 기간 비교
                 </button>
+                <button
+                  onClick={() => setActiveTab('compare_treemap')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                    activeTab === 'compare_treemap'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <LayoutGrid size={14} />
+                  트리맵 비교
+                </button>
               </div>
             )}
           </div>
@@ -95,10 +107,15 @@ export const Dashboard: React.FC = () => {
             {/* 우하: 고객별 매출 추이 차트 */}
             <WidgetWrapper><CustomerTrendChart /></WidgetWrapper>
           </div>
-        ) : (
+        ) : activeTab === 'compare' ? (
           /* 자유 기간 비교 탭 */
           <div className="flex-1 min-h-0 w-full bg-slate-50 p-4 overflow-y-auto custom-scrollbar">
             <CompareTab />
+          </div>
+        ) : (
+          /* 트리맵 비교 탭 */
+          <div className="flex-1 min-h-0 w-full bg-slate-50 overflow-hidden">
+            <TreemapTab />
           </div>
         )}
       </main>
