@@ -26,10 +26,15 @@ interface SalesRecord {
 function CustomTreemapNode(props: any) {
   const { x, y, width, height, name, amt, percent, index } = props;
   
-  if (width < 35 || height < 20) return null;
+  // name이 없거나 크기가 너무 작으면 렌더링하지 않음 (Recharts Root 노드 등 예외 처리)
+  if (!name || width < 35 || height < 20) return null;
+
+  const safeIndex = index ?? 0;
+  const safeAmt = amt ?? 0;
+  const safePercent = percent ?? 0;
 
   // 색상 지정: index를 기반으로 CHART_COLORS 순환 사용하되, 비중 강도에 따라 투명도 차별화
-  const baseColor = CHART_COLORS[index % CHART_COLORS.length];
+  const baseColor = CHART_COLORS[safeIndex % CHART_COLORS.length];
   const fillOpacity = width > 120 && height > 80 ? 0.9 : 0.75;
 
   // 폰트 크기 동적 결정
@@ -77,7 +82,7 @@ function CustomTreemapNode(props: any) {
             textAnchor="middle"
             dominantBaseline="middle"
           >
-            ₩{Math.round(amt).toLocaleString()}
+            ₩{Math.round(safeAmt).toLocaleString()}
           </text>
           {/* 비중 % 표시 */}
           <text
@@ -89,7 +94,7 @@ function CustomTreemapNode(props: any) {
             textAnchor="middle"
             dominantBaseline="middle"
           >
-            {percent.toFixed(1)}%
+            {safePercent.toFixed(1)}%
           </text>
         </>
       )}
