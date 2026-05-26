@@ -168,15 +168,19 @@ export function TreemapTab() {
   }, [salesData, selectedDepts, selectedBudgets, selectedMembers, ksCertFilter, isoCertFilter, custSearch]);
 
   // 3. 각 구간별 트리맵 데이터 연산 (고객별 총매출액 집계, 음수 제외, Top 30 제한)
+  //   - 방식 2 피드백 반영: 시작 또는 종료 연월 중 하나만 유효해도 1개월 단위 등으로 데이터 자동 연산
   const getTreemapData = (startStr: string, endStr: string) => {
-    if (!startStr || !endStr) {
+    const start = startStr || endStr;
+    const end = endStr || startStr;
+
+    if (!start || !end) {
       return { data: [], totalRevenue: 0 };
     }
 
     // 날짜 기간 필터링
     const periodFiltered = globallyFilteredSales.filter((r) => {
       const ym = `${r.year}-${String(r.month).padStart(2, '0')}`;
-      return ym >= startStr && ym <= endStr;
+      return ym >= start && ym <= end;
     });
 
     // 고객별 집계
@@ -214,16 +218,23 @@ export function TreemapTab() {
 
   // 특정 고객사의 기간 내 매출 리스트 중 상위 5개 가공 헬퍼
   const getDetailedSales = (customerName: string, startStr: string, endStr: string) => {
-    if (!customerName || !startStr || !endStr) return [];
+    const start = startStr || endStr;
+    const end = endStr || startStr;
+    if (!customerName || !start || !end) return [];
+    
     const matched = globallyFilteredSales.filter(r => {
       const ym = `${r.year}-${String(r.month).padStart(2, '0')}`;
-      return ym >= startStr && ym <= endStr && r.customerName === customerName;
+      return ym >= start && ym <= end && r.customerName === customerName;
     });
     return [...matched].sort((a, b) => b.salesAmount - a.salesAmount).slice(0, 5);
   };
 
-  // 구간 2 활성화 여부 판별
-  const isPeriod2Active = period2.start !== '' && period2.end !== '';
+  // 구간 2 활성화 여부 판별 (방식 2: 시작일 또는 종료일 둘 중 하나만 선택해도 활성화로 처리)
+  const isPeriod2Active = period2.start !== '' || period2.end !== '';
+  
+  // 화면 표출용 구간 2 연월 텍스트
+  const period2StartToShow = period2.start || period2.end;
+  const period2EndToShow = period2.end || period2.start;
 
   // 다중 선택 유틸
   const toggleSelect = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, item: string) => {
@@ -418,7 +429,7 @@ export function TreemapTab() {
       {/* ── 우측 트리맵 콘텐츠 영역 ── */}
       <section className="flex-1 flex flex-col p-6 space-y-6 overflow-y-auto custom-scrollbar">
         {/* 기간 선택 패널 (WidgetWrapper 스타일 적용) */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row gap-4 items-center justify-between shrink-0">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row gap-4 items-center justify-between shrink-0 w-full">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-indigo-600" />
             <h4 className="font-bold text-slate-800 text-sm">비교 구간 기간 설정 (구간 2 선택 시 좌우 분할)</h4>
@@ -489,10 +500,12 @@ export function TreemapTab() {
           </div>
         </div>
 
-        {/* 트리맵 배치 그리드 (flex-row를 사용하여 항상 가로 50:50 좌우 1:1 배치 강제) */}
-        <div className="flex flex-row gap-6 flex-1 min-h-[480px]">
-          {/* 구간 1 트리맵 */}
-          <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full relative ${isPeriod2Active ? 'w-1/2' : 'w-full'}`}>
+        {/* 트리맵 배치 그리드 (flex-row를 사용하여 항상 가로 50:50 좌우 1:1 배치 강제, 쏠림 해결) */}
+        <div className="flex flex-row gap-6 flex-1 min-h-[480px] w-full">
+          {/* 구간 1 트리맵 (isPeriod2Active 상태에 따라 flex-1 w-1/2 min-w-0 또는 w-full flex-grow 동적 확장) */}
+          <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full relative ${
+            isPeriod2Active ? 'flex-grow flex-1 w-1/2 min-w-0' : 'w-full flex-grow flex-1 min-w-0'
+          }`}>
             <div className="flex justify-between items-center mb-3">
               <h5 className="font-bold text-slate-800 text-sm">구간 1 매출 비중 ({period1.start} ~ {period1.end})</h5>
               <span className="text-xs font-mono text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded">
@@ -534,7 +547,7 @@ export function TreemapTab() {
 
             {/* 구간 1 실적 상세 오버레이 팝업 */}
             {selectedCustomer1 && (
-              <div className="absolute inset-0 bg-white shadow-2xl z-20 rounded-xl overflow-hidden flex flex-col p-4">
+              <div className="absolute inset-0 bg-white shadow-2xl z-20 rounded-xl overflow-hidden flex flex-col p-4 animate-fade-in">
                 <div className="flex justify-between items-center pb-3 border-b border-slate-200">
                   <div>
                     <h4 className="font-bold text-sm text-slate-800">{selectedCustomer1} 실적 상세 (구간 1)</h4>
@@ -573,11 +586,11 @@ export function TreemapTab() {
             )}
           </div>
 
-          {/* 구간 2 트리맵 (활성화되었을 때만 렌더링) */}
+          {/* 구간 2 트리맵 (활성화되었을 때만 렌더링, flex-grow w-1/2 min-w-0 적용으로 좌우 대칭 화면 확장) */}
           {isPeriod2Active && (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full relative w-1/2">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full relative flex-grow flex-1 w-1/2 min-w-0">
               <div className="flex justify-between items-center mb-3">
-                <h5 className="font-bold text-slate-800 text-sm">구간 2 매출 비중 ({period2.start} ~ {period2.end})</h5>
+                <h5 className="font-bold text-slate-800 text-sm">구간 2 매출 비중 ({period2StartToShow} ~ {period2EndToShow})</h5>
                 <span className="text-xs font-mono text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded">
                   총 ₩{Math.round(treemap2.totalRevenue).toLocaleString()}
                 </span>
@@ -617,7 +630,7 @@ export function TreemapTab() {
 
               {/* 구간 2 실적 상세 오버레이 팝업 */}
               {selectedCustomer2 && (
-                <div className="absolute inset-0 bg-white shadow-2xl z-20 rounded-xl overflow-hidden flex flex-col p-4">
+                <div className="absolute inset-0 bg-white shadow-2xl z-20 rounded-xl overflow-hidden flex flex-col p-4 animate-fade-in">
                   <div className="flex justify-between items-center pb-3 border-b border-slate-200">
                     <div>
                       <h4 className="font-bold text-sm text-slate-800">{selectedCustomer2} 실적 상세 (구간 2)</h4>
