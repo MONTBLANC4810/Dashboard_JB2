@@ -22,9 +22,10 @@ interface SalesRecord {
 // ★ Finviz 스타일 트리맵 커스텀 노드 렌더러
 //   - 박스 면적에 맞게 폰트 크기 및 텍스트 행 수 동적 제어
 //   - 상위 30% 이내 주요 항목은 좀 더 밝은 계열 색상 강조
+//   - 노드 클릭 기능 탑재
 // ──────────────────────────────────────────────────────────────────
 function CustomTreemapNode(props: any) {
-  const { x, y, width, height, name, amt, percent, index } = props;
+  const { x, y, width, height, name, amt, percent, index, onNodeClick } = props;
   
   // name이 없거나 크기가 너무 작으면 렌더링하지 않음 (Recharts Root 노드 등 예외 처리)
   if (!name || width < 35 || height < 20) return null;
@@ -42,7 +43,7 @@ function CustomTreemapNode(props: any) {
   const valFontSize = width > 100 ? 10 : 8;
 
   return (
-    <g>
+    <g onClick={() => onNodeClick && onNodeClick(name)} className="cursor-pointer">
       <rect
         x={x}
         y={y}
@@ -147,6 +148,10 @@ export function TreemapTab() {
   const [isoCertFilter, setIsoCertFilter] = useState<boolean | null>(null);
   const [custSearch, setCustSearch] = useState('');
 
+  // 클릭된 고객사에 대한 상세 보기 오버레이 팝업 상태 (각 구간별 독립)
+  const [selectedCustomer1, setSelectedCustomer1] = useState<string | null>(null);
+  const [selectedCustomer2, setSelectedCustomer2] = useState<string | null>(null);
+
   // 필터 조건 만족 여부 확인
   const isRecordValid = (r: SalesRecord) => {
     if (selectedDepts.length > 0 && !selectedDepts.includes(r.department)) return false;
@@ -207,6 +212,16 @@ export function TreemapTab() {
 
   const treemap1 = useMemo(() => getTreemapData(period1.start, period1.end), [globallyFilteredSales, period1]);
   const treemap2 = useMemo(() => getTreemapData(period2.start, period2.end), [globallyFilteredSales, period2]);
+
+  // 특정 고객사의 기간 내 매출 리스트 중 상위 5개 가공 헬퍼
+  const getDetailedSales = (customerName: string, startStr: string, endStr: string) => {
+    if (!customerName || !startStr || !endStr) return [];
+    const matched = globallyFilteredSales.filter(r => {
+      const ym = `${r.year}-${String(r.month).padStart(2, '0')}`;
+      return ym >= startStr && ym <= endStr && r.customerName === customerName;
+    });
+    return [...matched].sort((a, b) => b.salesAmount - a.salesAmount).slice(0, 5);
+  };
 
   // 구간 2 활성화 여부 판별
   const isPeriod2Active = period2.start !== '' && period2.end !== '';
@@ -293,8 +308,8 @@ export function TreemapTab() {
 
   return (
     <div className="flex h-[calc(100vh-62px)] bg-slate-50 font-sans overflow-hidden">
-      {/* ── 좌측 필터 사이드바 (FilterSidebar.tsx 디자인 100% 동기화) ── */}
-      <aside className="w-72 bg-white border-r border-slate-200 flex flex-col shadow-sm shrink-0 h-full">
+      {/* ── 좌측 필터 사이드바 (FilterSidebar.tsx 디자인 100% 동기화 및 마우스 스크롤 교정) ── */}
+      <aside className="w-72 bg-white border-r border-slate-200 flex flex-col shadow-sm shrink-0 h-full overflow-hidden">
         <div className="p-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
           <div className="flex items-center space-x-2 text-slate-800">
             <Filter className="w-5 h-5 text-indigo-600" />
@@ -316,7 +331,7 @@ export function TreemapTab() {
           )}
         </div>
 
-        <div className="p-4 overflow-y-auto flex-1 bg-slate-50/50 custom-scrollbar pr-2">
+        <div className="p-4 overflow-y-auto flex-1 min-h-0 bg-slate-50/50 custom-scrollbar pr-2">
           {/* 고객명 검색 */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3 ml-1 pr-1">
@@ -404,7 +419,7 @@ export function TreemapTab() {
       {/* ── 우측 트리맵 콘텐츠 영역 ── */}
       <section className="flex-1 flex flex-col p-6 space-y-6 overflow-y-auto custom-scrollbar">
         {/* 기간 선택 패널 (WidgetWrapper 스타일 적용) */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row gap-4 items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-indigo-600" />
             <h4 className="font-bold text-slate-800 text-sm">비교 구간 기간 설정 (구간 2 선택 시 좌우 분할)</h4>
@@ -475,10 +490,10 @@ export function TreemapTab() {
           </div>
         </div>
 
-        {/* 트리맵 배치 그리드 (구간 2의 활성화 상태에 따라 grid-cols-1 또는 grid-cols-2 로 동적 분할) */}
-        <div className={`grid gap-6 flex-1 min-h-[480px] ${isPeriod2Active ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}>
+        {/* 트리맵 배치 그리드 (sm:grid-cols-2를 통해 모바일 세로 뷰를 제외한 모든 태블릿 및 PC 화면에서 항시 좌우 배치) */}
+        <div className={`grid gap-6 flex-1 min-h-[480px] ${isPeriod2Active ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
           {/* 구간 1 트리맵 */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full relative">
             <div className="flex justify-between items-center mb-3">
               <h5 className="font-bold text-slate-800 text-sm">구간 1 매출 비중 ({period1.start} ~ {period1.end})</h5>
               <span className="text-xs font-mono text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded">
@@ -492,7 +507,7 @@ export function TreemapTab() {
                     data={treemap1.data}
                     dataKey="size"
                     stroke="#ffffff"
-                    content={<CustomTreemapNode />}
+                    content={<CustomTreemapNode onNodeClick={(name: string) => setSelectedCustomer1(name)} />}
                   >
                     <Tooltip
                       formatter={(value: any, name: any) => [
@@ -516,11 +531,51 @@ export function TreemapTab() {
                 </div>
               )}
             </div>
+
+            {/* 구간 1 실적 상세 오버레이 팝업 */}
+            {selectedCustomer1 && (
+              <div className="absolute inset-0 bg-white shadow-2xl z-20 rounded-xl overflow-hidden flex flex-col p-4 animate-fade-in">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-800">{selectedCustomer1} 실적 상세 (구간 1)</h4>
+                    <p className="text-[10px] text-slate-500 mt-0.5">상위 5개 매출 거래 내역</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedCustomer1(null)}
+                    className="text-xs font-medium text-slate-500 hover:text-red-500 transition-colors px-2 py-1 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
+                  >
+                    닫기 ✕
+                  </button>
+                </div>
+                <div className="overflow-y-auto flex-1 min-h-0 custom-scrollbar mt-3">
+                  <table className="w-full text-xs text-left table-fixed">
+                    <thead className="bg-slate-50 sticky top-0 shadow-sm z-10">
+                      <tr>
+                        <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[30%]">부서(이름)</th>
+                        <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[45%]">대표 자재내역</th>
+                        <th className="px-3 py-2 font-semibold text-slate-600 text-right border-b border-slate-200 w-[25%]">순매출액</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {getDetailedSales(selectedCustomer1, period1.start, period1.end).map((r, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-3 py-2 text-slate-700 truncate" title={r.department}>{r.department || '-'}</td>
+                          <td className="px-3 py-2 text-slate-500 truncate" title={r.materialDetails}>{r.materialDetails || '-'}</td>
+                          <td className="px-3 py-2 text-right text-slate-800 font-semibold font-mono">
+                            ₩{Math.round(r.salesAmount).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 구간 2 트리맵 (활성화되었을 때만 렌더링) */}
           {isPeriod2Active && (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full relative">
               <div className="flex justify-between items-center mb-3">
                 <h5 className="font-bold text-slate-800 text-sm">구간 2 매출 비중 ({period2.start} ~ {period2.end})</h5>
                 <span className="text-xs font-mono text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded">
@@ -534,7 +589,7 @@ export function TreemapTab() {
                       data={treemap2.data}
                       dataKey="size"
                       stroke="#ffffff"
-                      content={<CustomTreemapNode />}
+                      content={<CustomTreemapNode onNodeClick={(name: string) => setSelectedCustomer2(name)} />}
                     >
                       <Tooltip
                         formatter={(value: any, name: any) => [
@@ -558,6 +613,46 @@ export function TreemapTab() {
                   </div>
                 )}
               </div>
+
+              {/* 구간 2 실적 상세 오버레이 팝업 */}
+              {selectedCustomer2 && (
+                <div className="absolute inset-0 bg-white shadow-2xl z-20 rounded-xl overflow-hidden flex flex-col p-4 animate-fade-in">
+                  <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-800">{selectedCustomer2} 실적 상세 (구간 2)</h4>
+                      <p className="text-[10px] text-slate-500 mt-0.5">상위 5개 매출 거래 내역</p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCustomer2(null)}
+                      className="text-xs font-medium text-slate-500 hover:text-red-500 transition-colors px-2 py-1 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
+                    >
+                      닫기 ✕
+                    </button>
+                  </div>
+                  <div className="overflow-y-auto flex-1 min-h-0 custom-scrollbar mt-3">
+                    <table className="w-full text-xs text-left table-fixed">
+                      <thead className="bg-slate-50 sticky top-0 shadow-sm z-10">
+                        <tr>
+                          <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[30%]">부서(이름)</th>
+                          <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[45%]">대표 자재내역</th>
+                          <th className="px-3 py-2 font-semibold text-slate-600 text-right border-b border-slate-200 w-[25%]">순매출액</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {getDetailedSales(selectedCustomer2, period2.start, period2.end).map((r, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-3 py-2 text-slate-700 truncate" title={r.department}>{r.department || '-'}</td>
+                            <td className="px-3 py-2 text-slate-500 truncate" title={r.materialDetails}>{r.materialDetails || '-'}</td>
+                            <td className="px-3 py-2 text-right text-slate-800 font-semibold font-mono">
+                              ₩{Math.round(r.salesAmount).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
