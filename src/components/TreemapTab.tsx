@@ -260,6 +260,10 @@ export function TreemapTab() {
   const [selectedCustomer1, setSelectedCustomer1] = useState<string | null>(null);
   const [selectedCustomer2, setSelectedCustomer2] = useState<string | null>(null);
 
+  // 상세 보기 개수 제한 상태 (각 구간별 독립, 기본값 10)
+  const [detailLimit1, setDetailLimit1] = useState<number>(10);
+  const [detailLimit2, setDetailLimit2] = useState<number>(10);
+
   // 필터 조건 만족 여부 확인
   const isRecordValid = (r: SalesRecord) => {
     if (selectedDepts.length > 0 && !selectedDepts.includes(r.department)) return false;
@@ -325,8 +329,8 @@ export function TreemapTab() {
   const treemap1 = useMemo(() => getTreemapData(period1.start, period1.end), [globallyFilteredSales, period1]);
   const treemap2 = useMemo(() => getTreemapData(period2.start, period2.end), [globallyFilteredSales, period2]);
 
-  // 특정 고객사의 기간 내 매출 리스트 중 상위 5개 가공 헬퍼
-  const getDetailedSales = (customerName: string, startStr: string, endStr: string) => {
+  // 특정 고객사의 기간 내 매출 리스트 중 상위 N개 가공 헬퍼
+  const getDetailedSales = (customerName: string, startStr: string, endStr: string, limit: number = 10) => {
     const start = startStr || endStr;
     const end = endStr || startStr;
     if (!customerName || !start || !end) return [];
@@ -335,7 +339,7 @@ export function TreemapTab() {
       const ym = `${r.year}-${String(r.month).padStart(2, '0')}`;
       return ym >= start && ym <= end && r.customerName === customerName;
     });
-    return [...matched].sort((a, b) => b.salesAmount - a.salesAmount).slice(0, 5);
+    return [...matched].sort((a, b) => b.salesAmount - a.salesAmount).slice(0, limit);
   };
 
   // 구간 2 활성화 여부 판별 (방식 2: 시작일 또는 종료일 둘 중 하나만 선택해도 활성화로 처리)
@@ -687,7 +691,7 @@ export function TreemapTab() {
                     dataKey="size"
                     stroke="#ffffff"
                     isAnimationActive={false} // 유입 애니메이션 제거
-                    content={<CustomTreemapNode onNodeClick={(name: string) => setSelectedCustomer1(name)} />}
+                    content={<CustomTreemapNode onNodeClick={(name: string) => { setSelectedCustomer1(name); setDetailLimit1(10); }} />}
                   >
                     <Tooltip
                       formatter={(value: any, name: any) => [
@@ -720,14 +724,33 @@ export function TreemapTab() {
                 <div className="flex justify-between items-center pb-3 border-b border-slate-200">
                   <div>
                     <h4 className="font-bold text-sm text-slate-800">{selectedCustomer1} 실적 상세 (구간 1)</h4>
-                    <p className="text-[10px] text-slate-500 mt-0.5">상위 5개 매출 거래 내역</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">상위 {detailLimit1}개 매출 거래 내역</p>
                   </div>
-                  <button
-                    onClick={() => setSelectedCustomer1(null)}
-                    className="text-xs font-medium text-slate-500 hover:text-red-500 transition-colors px-2 py-1 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
-                  >
-                    닫기 ✕
-                  </button>
+                  <div className="flex items-center gap-4">
+                    {/* 똥그란 원형 라디오 버튼 보기 개수 필터 */}
+                    <div className="flex items-center space-x-3 text-xs bg-slate-50 border border-slate-200/60 p-1 px-2.5 rounded-lg">
+                      <span className="text-slate-500 font-medium select-none">보기 개수:</span>
+                      {([10, 20, 30] as const).map((val) => (
+                        <label key={val} className="flex items-center space-x-1 cursor-pointer text-slate-600 hover:text-slate-900 font-semibold select-none">
+                          <input
+                            type="radio"
+                            name="detailLimit1"
+                            value={val}
+                            checked={detailLimit1 === val}
+                            onChange={() => setDetailLimit1(val)}
+                            className="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                          />
+                          <span>{val}개</span>
+                        </label>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => { setSelectedCustomer1(null); setDetailLimit1(10); }}
+                      className="text-xs font-semibold text-slate-500 hover:text-red-500 transition-colors px-2 py-1 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
+                    >
+                      닫기 ✕
+                    </button>
+                  </div>
                 </div>
                 <div className="overflow-y-auto flex-1 min-h-0 custom-scrollbar mt-3">
                   <table className="w-full text-xs text-left table-fixed">
@@ -740,7 +763,7 @@ export function TreemapTab() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {getDetailedSales(selectedCustomer1, period1.start, period1.end).map((r, idx) => (
+                      {getDetailedSales(selectedCustomer1, period1.start, period1.end, detailLimit1).map((r, idx) => (
                         <tr key={idx} className="hover:bg-slate-50 transition-colors">
                           <td className="px-3 py-2 text-slate-700 truncate" title={`${r.year}년 ${String(r.month).padStart(2, '0')}월`}>
                             {r.year}년 {String(r.month).padStart(2, '0')}월
@@ -791,7 +814,7 @@ export function TreemapTab() {
                       dataKey="size"
                       stroke="#ffffff"
                       isAnimationActive={false} // 유입 애니메이션 제거
-                      content={<CustomTreemapNode onNodeClick={(name: string) => setSelectedCustomer2(name)} />}
+                      content={<CustomTreemapNode onNodeClick={(name: string) => { setSelectedCustomer2(name); setDetailLimit2(10); }} />}
                     >
                       <Tooltip
                         formatter={(value: any, name: any) => [
@@ -824,14 +847,33 @@ export function TreemapTab() {
                   <div className="flex justify-between items-center pb-3 border-b border-slate-200">
                     <div>
                       <h4 className="font-bold text-sm text-slate-800">{selectedCustomer2} 실적 상세 (구간 2)</h4>
-                      <p className="text-[10px] text-slate-500 mt-0.5">상위 5개 매출 거래 내역</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">상위 {detailLimit2}개 매출 거래 내역</p>
                     </div>
-                    <button
-                      onClick={() => setSelectedCustomer2(null)}
-                      className="text-xs font-medium text-slate-500 hover:text-red-500 transition-colors px-2 py-1 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
-                    >
-                      닫기 ✕
-                    </button>
+                    <div className="flex items-center gap-4">
+                      {/* 똥그란 원형 라디오 버튼 보기 개수 필터 */}
+                      <div className="flex items-center space-x-3 text-xs bg-slate-50 border border-slate-200/60 p-1 px-2.5 rounded-lg">
+                        <span className="text-slate-500 font-medium select-none">보기 개수:</span>
+                        {([10, 20, 30] as const).map((val) => (
+                          <label key={val} className="flex items-center space-x-1 cursor-pointer text-slate-600 hover:text-slate-900 font-semibold select-none">
+                            <input
+                              type="radio"
+                              name="detailLimit2"
+                              value={val}
+                              checked={detailLimit2 === val}
+                              onChange={() => setDetailLimit2(val)}
+                              className="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                            />
+                            <span>{val}개</span>
+                          </label>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => { setSelectedCustomer2(null); setDetailLimit2(10); }}
+                        className="text-xs font-semibold text-slate-500 hover:text-red-500 transition-colors px-2 py-1 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
+                      >
+                        닫기 ✕
+                      </button>
+                    </div>
                   </div>
                   <div className="overflow-y-auto flex-1 min-h-0 custom-scrollbar mt-3">
                     <table className="w-full text-xs text-left table-fixed">
@@ -844,7 +886,7 @@ export function TreemapTab() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {getDetailedSales(selectedCustomer2, period2.start, period2.end).map((r, idx) => (
+                        {getDetailedSales(selectedCustomer2, period2.start, period2.end, detailLimit2).map((r, idx) => (
                           <tr key={idx} className="hover:bg-slate-50 transition-colors">
                             <td className="px-3 py-2 text-slate-700 truncate" title={`${r.year}년 ${String(r.month).padStart(2, '0')}월`}>
                               {r.year}년 {String(r.month).padStart(2, '0')}월
