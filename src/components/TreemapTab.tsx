@@ -264,6 +264,12 @@ export function TreemapTab() {
   const [detailLimit1, setDetailLimit1] = useState<number>(10);
   const [detailLimit2, setDetailLimit2] = useState<number>(10);
 
+  // 상세 보기 정렬 상태 (각 구간별 독립)
+  const [sortKey1, setSortKey1] = useState<'period' | 'department' | 'salesAmount'>('salesAmount');
+  const [sortDir1, setSortDir1] = useState<'asc' | 'desc'>('desc');
+  const [sortKey2, setSortKey2] = useState<'period' | 'department' | 'salesAmount'>('salesAmount');
+  const [sortDir2, setSortDir2] = useState<'asc' | 'desc'>('desc');
+
   // 필터 조건 만족 여부 확인
   const isRecordValid = (r: SalesRecord) => {
     if (selectedDepts.length > 0 && !selectedDepts.includes(r.department)) return false;
@@ -330,7 +336,14 @@ export function TreemapTab() {
   const treemap2 = useMemo(() => getTreemapData(period2.start, period2.end), [globallyFilteredSales, period2]);
 
   // 특정 고객사의 기간 내 매출 리스트 중 상위 N개 가공 헬퍼
-  const getDetailedSales = (customerName: string, startStr: string, endStr: string, limit: number = 10) => {
+  const getDetailedSales = (
+    customerName: string,
+    startStr: string,
+    endStr: string,
+    limit: number = 10,
+    sortKey: 'period' | 'department' | 'salesAmount' = 'salesAmount',
+    sortDir: 'asc' | 'desc' = 'desc'
+  ) => {
     const start = startStr || endStr;
     const end = endStr || startStr;
     if (!customerName || !start || !end) return [];
@@ -339,7 +352,57 @@ export function TreemapTab() {
       const ym = `${r.year}-${String(r.month).padStart(2, '0')}`;
       return ym >= start && ym <= end && r.customerName === customerName;
     });
-    return [...matched].sort((a, b) => b.salesAmount - a.salesAmount).slice(0, limit);
+
+    // 1단계: 매출액 기준으로 내림차순(desc) 정렬하여 상위 limit개 추출 (A안)
+    const topN = [...matched].sort((a, b) => b.salesAmount - a.salesAmount).slice(0, limit);
+
+    // 2단계: 추출된 topN 리스트에 대해 sortKey, sortDir 기준으로 정렬
+    return topN.sort((a, b) => {
+      let valA: any;
+      let valB: any;
+      
+      if (sortKey === 'period') {
+        valA = `${a.year}-${String(a.month).padStart(2, '0')}`;
+        valB = `${b.year}-${String(b.month).padStart(2, '0')}`;
+      } else if (sortKey === 'department') {
+        valA = a.department || '';
+        valB = b.department || '';
+      } else {
+        valA = a.salesAmount;
+        valB = b.salesAmount;
+      }
+      
+      if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  // 정렬 핸들러 헬퍼 정의
+  const handleSort1 = (key: 'period' | 'department' | 'salesAmount') => {
+    if (sortKey1 === key) {
+      setSortDir1(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey1(key);
+      setSortDir1('desc');
+    }
+  };
+
+  const handleSort2 = (key: 'period' | 'department' | 'salesAmount') => {
+    if (sortKey2 === key) {
+      setSortDir2(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey2(key);
+      setSortDir2('desc');
+    }
+  };
+
+  // 미니 화살표 기호 렌더링 헬퍼
+  const getSortIcon = (key: 'period' | 'department' | 'salesAmount', sortKey: string, sortDir: string) => {
+    if (sortKey !== key) return <span className="text-slate-300 ml-1 font-mono text-[9px] select-none">↕</span>;
+    return sortDir === 'asc' 
+      ? <span className="text-indigo-600 ml-1 font-mono text-[9px] select-none">▲</span> 
+      : <span className="text-indigo-600 ml-1 font-mono text-[9px] select-none">▼</span>;
   };
 
   // 구간 2 활성화 여부 판별 (방식 2: 시작일 또는 종료일 둘 중 하나만 선택해도 활성화로 처리)
@@ -691,7 +754,7 @@ export function TreemapTab() {
                     dataKey="size"
                     stroke="#ffffff"
                     isAnimationActive={false} // 유입 애니메이션 제거
-                    content={<CustomTreemapNode onNodeClick={(name: string) => { setSelectedCustomer1(name); setDetailLimit1(10); }} />}
+                    content={<CustomTreemapNode onNodeClick={(name: string) => { setSelectedCustomer1(name); setDetailLimit1(10); setSortKey1('salesAmount'); setSortDir1('desc'); }} />}
                   >
                     <Tooltip
                       formatter={(value: any, name: any) => [
@@ -745,7 +808,7 @@ export function TreemapTab() {
                       ))}
                     </div>
                     <button
-                      onClick={() => { setSelectedCustomer1(null); setDetailLimit1(10); }}
+                      onClick={() => { setSelectedCustomer1(null); setDetailLimit1(10); setSortKey1('salesAmount'); setSortDir1('desc'); }}
                       className="text-xs font-semibold text-slate-500 hover:text-red-500 transition-colors px-2 py-1 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
                     >
                       닫기 ✕
@@ -756,14 +819,35 @@ export function TreemapTab() {
                   <table className="w-full text-xs text-left table-fixed">
                     <thead className="bg-slate-50 sticky top-0 shadow-sm z-10">
                       <tr>
-                        <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[25%]">시기</th>
-                        <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[25%]">부서(이름)</th>
-                        <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[30%]">대표 자재내역</th>
-                        <th className="px-3 py-2 font-semibold text-slate-600 text-right border-b border-slate-200 w-[20%]">순매출액</th>
+                        <th 
+                          onClick={() => handleSort1('period')}
+                          className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[25%] cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                        >
+                          <div className="flex items-center">
+                            시기 {getSortIcon('period', sortKey1, sortDir1)}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => handleSort1('department')}
+                          className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[25%] cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                        >
+                          <div className="flex items-center">
+                            부서(이름) {getSortIcon('department', sortKey1, sortDir1)}
+                          </div>
+                        </th>
+                        <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[30%] select-none">대표 자재내역</th>
+                        <th 
+                          onClick={() => handleSort1('salesAmount')}
+                          className="px-3 py-2 font-semibold text-slate-600 text-right border-b border-slate-200 w-[20%] cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                        >
+                          <div className="flex items-center justify-end">
+                            순매출액 {getSortIcon('salesAmount', sortKey1, sortDir1)}
+                          </div>
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {getDetailedSales(selectedCustomer1, period1.start, period1.end, detailLimit1).map((r, idx) => (
+                      {getDetailedSales(selectedCustomer1, period1.start, period1.end, detailLimit1, sortKey1, sortDir1).map((r, idx) => (
                         <tr key={idx} className="hover:bg-slate-50 transition-colors">
                           <td className="px-3 py-2 text-slate-700 truncate" title={`${r.year}년 ${String(r.month).padStart(2, '0')}월`}>
                             {r.year}년 {String(r.month).padStart(2, '0')}월
@@ -814,7 +898,7 @@ export function TreemapTab() {
                       dataKey="size"
                       stroke="#ffffff"
                       isAnimationActive={false} // 유입 애니메이션 제거
-                      content={<CustomTreemapNode onNodeClick={(name: string) => { setSelectedCustomer2(name); setDetailLimit2(10); }} />}
+                      content={<CustomTreemapNode onNodeClick={(name: string) => { setSelectedCustomer2(name); setDetailLimit2(10); setSortKey2('salesAmount'); setSortDir2('desc'); }} />}
                     >
                       <Tooltip
                         formatter={(value: any, name: any) => [
@@ -868,7 +952,7 @@ export function TreemapTab() {
                         ))}
                       </div>
                       <button
-                        onClick={() => { setSelectedCustomer2(null); setDetailLimit2(10); }}
+                        onClick={() => { setSelectedCustomer2(null); setDetailLimit2(10); setSortKey2('salesAmount'); setSortDir2('desc'); }}
                         className="text-xs font-semibold text-slate-500 hover:text-red-500 transition-colors px-2 py-1 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
                       >
                         닫기 ✕
@@ -879,14 +963,35 @@ export function TreemapTab() {
                     <table className="w-full text-xs text-left table-fixed">
                       <thead className="bg-slate-50 sticky top-0 shadow-sm z-10">
                         <tr>
-                          <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[25%]">시기</th>
-                          <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[25%]">부서(이름)</th>
-                          <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[30%]">대표 자재내역</th>
-                          <th className="px-3 py-2 font-semibold text-slate-600 text-right border-b border-slate-200 w-[20%]">순매출액</th>
+                          <th 
+                            onClick={() => handleSort2('period')}
+                            className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[25%] cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                          >
+                            <div className="flex items-center">
+                              시기 {getSortIcon('period', sortKey2, sortDir2)}
+                            </div>
+                          </th>
+                          <th 
+                            onClick={() => handleSort2('department')}
+                            className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[25%] cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                          >
+                            <div className="flex items-center">
+                              부서(이름) {getSortIcon('department', sortKey2, sortDir2)}
+                            </div>
+                          </th>
+                          <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[30%] select-none">대표 자재내역</th>
+                          <th 
+                            onClick={() => handleSort2('salesAmount')}
+                            className="px-3 py-2 font-semibold text-slate-600 text-right border-b border-slate-200 w-[20%] cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                          >
+                            <div className="flex items-center justify-end">
+                              순매출액 {getSortIcon('salesAmount', sortKey2, sortDir2)}
+                            </div>
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {getDetailedSales(selectedCustomer2, period2.start, period2.end, detailLimit2).map((r, idx) => (
+                        {getDetailedSales(selectedCustomer2, period2.start, period2.end, detailLimit2, sortKey2, sortDir2).map((r, idx) => (
                           <tr key={idx} className="hover:bg-slate-50 transition-colors">
                             <td className="px-3 py-2 text-slate-700 truncate" title={`${r.year}년 ${String(r.month).padStart(2, '0')}월`}>
                               {r.year}년 {String(r.month).padStart(2, '0')}월
