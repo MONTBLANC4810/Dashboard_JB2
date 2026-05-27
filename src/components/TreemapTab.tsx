@@ -84,7 +84,8 @@ function CustomTreemapNode(props: any) {
           fontWeight={400}
           textAnchor="middle"
           dominantBaseline="middle"
-          style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)', fontFamily: 'sans-serif' }}
+          className="treemap-node-name"
+          style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)', fontFamily: 'sans-serif', fill: '#ffffff' }}
         >
           {name.length > Math.floor(width / 10) ? name.slice(0, Math.floor(width / 10) - 1) + '..' : name}
         </text>
@@ -102,7 +103,8 @@ function CustomTreemapNode(props: any) {
             fontFamily="sans-serif"
             textAnchor="middle"
             dominantBaseline="middle"
-            style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)' }}
+            className="treemap-node-amount"
+            style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)', fill: 'rgba(255,255,255,0.95)' }}
           >
             ₩{Math.round(safeAmt).toLocaleString()}
           </text>
@@ -115,7 +117,8 @@ function CustomTreemapNode(props: any) {
             fontWeight={400}
             textAnchor="middle"
             dominantBaseline="middle"
-            style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)', fontFamily: 'sans-serif' }}
+            className="treemap-node-percent"
+            style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)', fontFamily: 'sans-serif', fill: 'rgba(255,255,255,0.85)' }}
           >
             {safePercent.toFixed(1)}%
           </text>
@@ -222,11 +225,13 @@ export function TreemapTab() {
     const depts = new Set<string>();
     const budgets = new Set<string>();
     const members = new Set<string>();
+    const custs = new Set<string>();
     
     salesData.forEach(r => {
       if (r.department) depts.add(r.department);
       if (r.budgetType) budgets.add(r.budgetType);
       if (r.memberStatus) members.add(r.memberStatus);
+      if (r.customerName) custs.add(r.customerName);
     });
 
     return {
@@ -237,7 +242,8 @@ export function TreemapTab() {
         const indexA = order.indexOf(a);
         const indexB = order.indexOf(b);
         return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
-      })
+      }),
+      customers: Array.from(custs).sort()
     };
   }, [salesData]);
 
@@ -247,6 +253,7 @@ export function TreemapTab() {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [ksCertFilter, setKsCertFilter] = useState<boolean | null>(null); // null(무관), true(O), false(X)
   const [isoCertFilter, setIsoCertFilter] = useState<boolean | null>(null);
+  const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
   const [custSearch, setCustSearch] = useState('');
 
   // 클릭된 고객사에 대한 상세 보기 오버레이 팝업 상태 (각 구간별 독립)
@@ -260,7 +267,7 @@ export function TreemapTab() {
     if (selectedMembers.length > 0 && !selectedMembers.includes(r.memberStatus)) return false;
     if (ksCertFilter !== null && r.ksCert !== ksCertFilter) return false;
     if (isoCertFilter !== null && r.isoCert !== isoCertFilter) return false;
-    if (custSearch && !r.customerName.toLowerCase().includes(custSearch.toLowerCase())) return false;
+    if (selectedCustomers.length > 0 && !selectedCustomers.includes(r.customerName)) return false;
     return true;
   };
 
@@ -351,9 +358,9 @@ export function TreemapTab() {
     count += selectedMembers.length;
     if (ksCertFilter !== null) count += 1;
     if (isoCertFilter !== null) count += 1;
-    if (custSearch) count += 1;
+    count += selectedCustomers.length;
     return count;
-  }, [selectedDepts, selectedBudgets, selectedMembers, ksCertFilter, isoCertFilter, custSearch]);
+  }, [selectedDepts, selectedBudgets, selectedMembers, ksCertFilter, isoCertFilter, selectedCustomers]);
 
   const handleResetFilters = () => {
     setSelectedDepts([]);
@@ -361,6 +368,7 @@ export function TreemapTab() {
     setSelectedMembers([]);
     setKsCertFilter(null);
     setIsoCertFilter(null);
+    setSelectedCustomers([]);
     setCustSearch('');
   };
 
@@ -369,9 +377,15 @@ export function TreemapTab() {
     title: string,
     items: string[],
     selectedItems: string[],
-    setSelectedItems: React.Dispatch<React.SetStateAction<string[]>>
+    setSelectedItems: React.Dispatch<React.SetStateAction<string[]>>,
+    searchable: boolean = false
   ) => {
     if (items.length === 0) return null;
+
+    let displayItems = items;
+    if (searchable && custSearch.trim()) {
+      displayItems = items.filter(item => item.toLowerCase().includes(custSearch.toLowerCase()));
+    }
 
     return (
       <div className="mb-6">
@@ -395,8 +409,24 @@ export function TreemapTab() {
           </div>
         </div>
 
+        {searchable && (
+          <div className="relative mb-2">
+            <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+              <Search className="h-3.5 w-3.5 text-slate-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="고객명 검색..."
+              value={custSearch}
+              onChange={(e) => setCustSearch(e.target.value)}
+              className="block w-full pl-7 pr-3 py-1.5 border border-slate-300 rounded-md text-xs focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+        )}
+
         <div className="max-h-40 overflow-y-auto space-y-1.5 custom-scrollbar pr-2">
-          {items.map(item => {
+          {displayItems.length === 0 && searchable && <div className="text-xs text-slate-400 p-1">검색 결과가 없습니다.</div>}
+          {displayItems.map(item => {
             const isChecked = selectedItems.includes(item);
             return (
               <label
@@ -420,6 +450,21 @@ export function TreemapTab() {
 
   return (
     <div className="flex h-full bg-slate-50 font-sans overflow-hidden">
+      <style>{`
+        text.treemap-node-name {
+          fill: #ffffff !important;
+        }
+        text.treemap-node-amount {
+          fill: rgba(255,255,255,0.95) !important;
+        }
+        text.treemap-node-percent {
+          fill: rgba(255,255,255,0.85) !important;
+        }
+        .recharts-default-tooltip,
+        .recharts-default-tooltip * {
+          color: #ffffff !important;
+        }
+      `}</style>
       {/* ── 좌측 필터 사이드바 (FilterSidebar.tsx 디자인 100% 동기화 및 마우스 스크롤 교정) ── */}
       <aside className="w-72 bg-white border-r border-slate-200 flex flex-col shadow-sm shrink-0 h-full overflow-hidden">
         <div className="p-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
@@ -444,29 +489,10 @@ export function TreemapTab() {
         </div>
 
         <div className="p-4 overflow-y-auto flex-1 min-h-0 bg-slate-50/50 custom-scrollbar pr-2">
-          {/* 고객명 검색 */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3 ml-1 pr-1">
-              <h4 className="font-semibold text-slate-700 text-sm">고객명 검색</h4>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                <Search className="h-3.5 w-3.5 text-slate-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="고객명 검색..."
-                value={custSearch}
-                onChange={(e) => setCustSearch(e.target.value)}
-                className="block w-full pl-7 pr-3 py-1.5 border border-slate-300 rounded-md text-xs focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-          </div>
-
           {/* 사업부서명 */}
           {renderSidebarCheckboxGroup("사업부서명 (이름)", uniqueValues.departments, selectedDepts, setSelectedDepts)}
 
-          {/* 예산(목) */}
+          {/* 예산 (목) */}
           {renderSidebarCheckboxGroup("예산 (목)", uniqueValues.budgetTypes, selectedBudgets, setSelectedBudgets)}
 
           {/* 인증 현황 */}
@@ -525,6 +551,9 @@ export function TreemapTab() {
 
           {/* 회원 상태 */}
           {renderSidebarCheckboxGroup("회원 상태", uniqueValues.memberStatuses, selectedMembers, setSelectedMembers)}
+
+          {/* 고객명 다중 선택 필터 */}
+          {renderSidebarCheckboxGroup("고객명", uniqueValues.customers, selectedCustomers, setSelectedCustomers, true)}
         </div>
       </aside>
 
@@ -669,10 +698,12 @@ export function TreemapTab() {
                         backgroundColor: '#1e293b',
                         border: 'none',
                         borderRadius: '8px',
-                        color: '#fff',
+                        color: '#ffffff',
                         fontSize: '11px',
                         padding: '8px'
                       }}
+                      itemStyle={{ color: '#ffffff' }}
+                      labelStyle={{ color: '#ffffff' }}
                     />
                   </Treemap>
                 </ResponsiveContainer>
@@ -702,14 +733,18 @@ export function TreemapTab() {
                   <table className="w-full text-xs text-left table-fixed">
                     <thead className="bg-slate-50 sticky top-0 shadow-sm z-10">
                       <tr>
-                        <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[30%]">부서(이름)</th>
-                        <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[45%]">대표 자재내역</th>
-                        <th className="px-3 py-2 font-semibold text-slate-600 text-right border-b border-slate-200 w-[25%]">순매출액</th>
+                        <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[25%]">시기</th>
+                        <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[25%]">부서(이름)</th>
+                        <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[30%]">대표 자재내역</th>
+                        <th className="px-3 py-2 font-semibold text-slate-600 text-right border-b border-slate-200 w-[20%]">순매출액</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {getDetailedSales(selectedCustomer1, period1.start, period1.end).map((r, idx) => (
                         <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-3 py-2 text-slate-700 truncate" title={`${r.year}년 ${String(r.month).padStart(2, '0')}월`}>
+                            {r.year}년 {String(r.month).padStart(2, '0')}월
+                          </td>
                           <td className="px-3 py-2 text-slate-700 truncate" title={r.department}>{r.department || '-'}</td>
                           <td className="px-3 py-2 text-slate-500 truncate" title={r.materialDetails}>{r.materialDetails || '-'}</td>
                           <td className="px-3 py-2 text-right text-slate-800 font-semibold font-mono">
@@ -767,10 +802,12 @@ export function TreemapTab() {
                           backgroundColor: '#1e293b',
                           border: 'none',
                           borderRadius: '8px',
-                          color: '#fff',
+                          color: '#ffffff',
                           fontSize: '11px',
                           padding: '8px'
                         }}
+                        itemStyle={{ color: '#ffffff' }}
+                        labelStyle={{ color: '#ffffff' }}
                       />
                     </Treemap>
                   </ResponsiveContainer>
@@ -800,14 +837,18 @@ export function TreemapTab() {
                     <table className="w-full text-xs text-left table-fixed">
                       <thead className="bg-slate-50 sticky top-0 shadow-sm z-10">
                         <tr>
-                          <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[30%]">부서(이름)</th>
-                          <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[45%]">대표 자재내역</th>
-                          <th className="px-3 py-2 font-semibold text-slate-600 text-right border-b border-slate-200 w-[25%]">순매출액</th>
+                          <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[25%]">시기</th>
+                          <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[25%]">부서(이름)</th>
+                          <th className="px-3 py-2 font-semibold text-slate-600 border-b border-slate-200 w-[30%]">대표 자재내역</th>
+                          <th className="px-3 py-2 font-semibold text-slate-600 text-right border-b border-slate-200 w-[20%]">순매출액</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {getDetailedSales(selectedCustomer2, period2.start, period2.end).map((r, idx) => (
                           <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-3 py-2 text-slate-700 truncate" title={`${r.year}년 ${String(r.month).padStart(2, '0')}월`}>
+                              {r.year}년 {String(r.month).padStart(2, '0')}월
+                            </td>
                             <td className="px-3 py-2 text-slate-700 truncate" title={r.department}>{r.department || '-'}</td>
                             <td className="px-3 py-2 text-slate-500 truncate" title={r.materialDetails}>{r.materialDetails || '-'}</td>
                             <td className="px-3 py-2 text-right text-slate-800 font-semibold font-mono">
